@@ -12,15 +12,20 @@
 import datetime
 import sys
 import socket
-import threadpool as tp
+import multiprocessing
 import random
 import re
 import requests
 import os
+import time
 from common.output import *
 TOP_LEVEL = []
 THREADS_NUM = 10
-DNS_LIST = []
+DNS_LIST = ['223.5.5.5', '223.6.6.6', '180.76.76.76']
+
+# TODO
+# 1. use yield to optimize the memory usage
+# 2. encapsulate this code to module
 
 
 def get_ban_ip(dns, domain):
@@ -57,31 +62,36 @@ def get_ip(sub_domain, ban_ip, category, domain):
     # Use Method find_ip_from_dns to Fetch ip
     global DNS_LIST, TOP_LEVEL
     dns_server = random.choice(DNS_LIST)
-    try:
-        ip = find_ip_from_dns(dns_server, sub_domain)
-        if ip != ban_ip and ip != []:
-            print "[+] <Found> %s" % sub_domain
-            output_add(sub_domain, ip, category, domain)
-            if category == "TOP-LEVEL":
-                TOP_LEVEL.append(sub_domain)
-            # print "[+] <Found> %s %s" % (sub_domain, ip)
-            # dns_server, sub_domain, ip
-    except Exception, e:
-        print "[-] Error.get_ip Domain: %s Detail: %s" % (sub_domain, e)
-        pass
+    try_count = 0
+    while True:
+        try:
+            ip = find_ip_from_dns(dns_server, sub_domain)
+            try_count = 0
+            break
+        except Exception, e:
+            print "[-] Get Failed ! Regetting... Domain: %s" % sub_domain
+            try_count += 1
+            time.sleep(3)  # sleep 3 seconds to avoid network error.
+    if ip != ban_ip and ip != []:
+        print "[+] <Found> %s" % sub_domain
+        output_add(sub_domain, ip, category, domain)
+        if category == "TOP-LEVEL":
+            TOP_LEVEL.append(sub_domain)
 
 
 def start_fuzz(domain):
     global TOP_LEVEL, DNS_LIST
     print "[*] Target: %s" % domain
     output_init(domain)
-    file_handle = open("./dict/dns.dict")
-    DNS_LIST = file_handle.read().split('\n')
+    # file_handle = open("./dict/dns.dict")
+    # DNS_LIST = file_handle.read().split('\n')
     # In Case it's Pan analytical
-    dns = random.choice(DNS_LIST)
-    ban_ip = get_ban_ip(dns, domain)
+    ban_ip = get_ban_ip(random.choice(DNS_LIST), domain)
+    print "[*] %s" % ban_ip
+    '''
     while not ban_ip:
-        ban_ip = get_ban_ip(dns, domain)
+        ban_ip = get_ban_ip(random.choice(DNS_LIST), domain)
+    '''
     fuzz_top_domain(domain, ban_ip)
     fuzz_second_domain(domain, ban_ip)
     print "[*] Done!"
@@ -92,9 +102,17 @@ def fuzz_top_domain(domain, ban_ip):
     print "[*] TOP-LEVEL DOMAIN FUZZING..."
     file_handle = open("./dict/top-level.dict")
     content_dict = file_handle.read().split('\n')
+    jobs = []
     for i in xrange(len(content_dict)):
         sub_domain = content_dict[i] + '.' + domain
-        get_ip(sub_domain, ban_ip, "TOP-LEVEL", domain)
+        # get_ip(sub_domain, ban_ip, "TOP-LEVEL", domain)
+        p = multiprocessing.Process(target=get_ip, args=(sub_domain, ban_ip, 'TOP-LEVEL', domain))
+        p.start()
+        jobs.append(p)
+    while sum([i.is_alive() for i in jobs]) != 0:
+        pass
+    for i in jobs:
+        i.join()
     print "[*] TOP-LEVEL DOMAIN FINISHED..."
 
 
@@ -103,10 +121,18 @@ def fuzz_second_domain(domain, ban_ip):
     print "[*] SECOND-LEVEL DOMAIN FUZZING..."
     file_handle = open("./dict/second-level.dict")
     content_dict = file_handle.read().split('\n')
+    jobs = []
     for j in xrange(len(TOP_LEVEL)):
         for i in xrange(len(content_dict)):
             sub_domain = content_dict[i] + '.' + TOP_LEVEL[j]
-            get_ip(sub_domain, ban_ip, "SECOND-LEVEL", domain)
+            # get_ip(sub_domain, ban_ip, "SECOND-LEVEL", domain)
+            p = multiprocessing.Process(target=get_ip, args=(sub_domain, ban_ip, 'SECOND-LEVEL', domain))
+            p.start()
+            jobs.append(p)
+    while sum([i.is_alive() for i in jobs]) != 0:
+        pass
+    for i in jobs:
+        i.join()
     print "[*] SECOND-LEVEL DOMAIN FINISHED..."
 
 
