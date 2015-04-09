@@ -65,6 +65,8 @@ def find_ip_from_dns(dns_server, sub_domain):
 def get_ip(sub_domain, ban_ip, category, domain):
     # Use Method find_ip_from_dns to Fetch ip
     global DNS_LIST, TOP_LEVEL
+    if sub_domain == '' or sub_domain.startswith('.'):
+        return
     dns_server = random.choice(DNS_LIST)
     try_count = 0
     while True:
@@ -81,11 +83,11 @@ def get_ip(sub_domain, ban_ip, category, domain):
         print "[+] <Found> %s" % sub_domain
         output_add(sub_domain, ip, category, domain)
         if category == "TOP-LEVEL":
-            TOP_LEVEL.append(sub_domain)
+            return sub_domain
 
 
 def get_ip_x(args):
-    get_ip(*args)
+    return get_ip(*args)
 
 
 def start_fuzz(domain):
@@ -130,13 +132,17 @@ def fuzz_top_domain_pool(domain, ban_ip):
     print "[*] TOP-LEVEL DOMAIN FUZZING..."
     file_handle = open("./dict/top-level.dict")
     content_dict = file_handle.read().split('\n')
+    if content_dict[-1] == '':
+        del content_dict[-1]
 
     pool = Pool(THREADS_NUM)
-
-    pool.map(get_ip_x, itertools.izip(map(lambda x: x + '.' + domain, content_dict),
+    results = pool.map(get_ip_x, itertools.izip(
+        map(lambda x: x + '.' + domain, content_dict),
         itertools.repeat(ban_ip),
         itertools.repeat('TOP-LEVEL'),
         itertools.repeat(domain)))
+    TOP_LEVEL.extend([r for r in results if r])
+    pool.terminate()
     print "[*] TOP-LEVEL DOMAIN FINISHED..."
 
 
@@ -168,10 +174,13 @@ def fuzz_second_domain_pool(domain, ban_ip):
     content_dict = file_handle.read().split('\n')
     pool = Pool(THREADS_NUM)
 
-    pool.map(get_ip_x, itertools.izip(map(lambda x: x + '.' + domain, content_dict),
+    pool.map(get_ip_x, itertools.izip(
+        (str(sub) + '.' + str(top)
+            for sub in content_dict for top in TOP_LEVEL),
         itertools.repeat(ban_ip),
         itertools.repeat('SECOND-LEVEL'),
         itertools.repeat(domain)))
+    pool.terminate()
     print "[*] SECOND-LEVEL DOMAIN FINISHED..."
 
 
