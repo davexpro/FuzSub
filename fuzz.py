@@ -12,27 +12,77 @@
 import datetime
 import sys
 import socket
-import os
+import threadpool as tp
+import random
 import re
 import requests
+import os
 TOP_LEVEL = []
+THREADS_NUM = 10
+DNS_LIST = []
+
+
+def get_ban_ip(dns, domain):
+    ban_ip = 'time out'
+    while ban_ip == 'time out':
+        try:
+            ban_ip = find_ip_from_dns(dns, 'an9xm02d.' + domain)
+        except Exception, e:
+            ban_ip = 'time out'
+    return ban_ip
+
+
+def find_ip_from_dns(dns_server, domain):
+    host = ''
+    for i in domain.split('.'):
+        host += chr(len(i))+i
+    index = os.urandom(2)
+    data = '%s\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00%s\x00\x00\x01\x00\x01' % (index, host)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(15)
+    s.sendto(data, (dns_server, 53))
+    respond = s.recv(512)
+    ip_list = []
+    for j in re.findall("\xC0[\s\S]\x00\x01\x00\x01[\s\S]{6}([\s\S]{4})", respond):
+        ip = '.'.join(str(ord(ii)) for ii in j)
+        ip_list.append(ip)
+    ip_list.sort()
+    return ip_list
+
+
+def get_ip(sub_domain, ban_ip):
+    global DNS_LIST
+    dns_server = random.choice(DNS_LIST)
+    #
+    try:
+        ip = find_ip_from_dns(dns_server, sub_domain)
+        if ip != ban_ip and ip != []:
+            print "[+] <Found> %s" % sub_domain
+            # print "[+] <Found> %s %s" % (sub_domain, ip)
+            # dns_server, sub_domain, ip
+    except Exception, e:
+        print "[-] Error.get_ip Domain: %s Detail: %s" % (sub_domain, e)
+        pass
 
 
 def start_fuzz(domain):
-    global TOP_LEVEL
+    global TOP_LEVEL, DNS_LIST
     print "[*] Target: %s" % domain
-    fuzz_top_domain(domain)
-    fuzz_second_domain()
+    file_handle = open("./dict/dns.dict")
+    DNS_LIST = file_handle.read().split('\n')
+    ban_ip = get_ban_ip(random.choice(DNS_LIST), domain)
+    fuzz_top_domain(domain, ban_ip)
+    # fuzz_second_domain()
     print "[*] Done!"
 
 
-def fuzz_top_domain(domain):
+def fuzz_top_domain(domain, ban_ip):
     print "[*] TOP-LEVEL DOMAIN FUZZING..."
     file_handle = open("./dict/top-level.dict")
     content_dict = file_handle.read().split('\n')
     for i in xrange(len(content_dict)):
         sub_domain = content_dict[i] + '.' + domain
-        dns_forward_query(sub_domain, True)
+        get_ip(sub_domain, ban_ip)
     print "[*] TOP-LEVEL DOMAIN FINISHED..."
 
 
@@ -44,47 +94,29 @@ def fuzz_second_domain():
     for j in xrange(len(TOP_LEVEL)):
         for i in xrange(len(content_dict)):
             sub_domain = content_dict[i] + '.' + TOP_LEVEL[j]
-            dns_forward_query(sub_domain, False)
+
     print "[*] SECOND-LEVEL DOMAIN FINISHED..."
 
 
-def dns_forward_query(p_domain, top):
-    global TOP_LEVEL
+def domain_verify(doamin):
+    full_domain = "http://%s" % doamin
     try:
-        result = socket.getaddrinfo(p_domain, None)
-        print "[+] <Discovered> %s" % p_domain
-        if top:
-            TOP_LEVEL.append(p_domain)
-        # For Debug
-        '''
-        counter = 0
-        for item in result:
-            # Print out the address tuple for each item
-            print "%-2d: %s" % (counter, item[4])
-            counter += 1
-            '''
+        status = requests.get(full_domain, timeout=3).status_code
+        print "[+] <[%s]> %s" % (status, full_domain)
     except Exception, e:
-        # print e
+        # Something to check whether the network problem
         pass
-
-
-def dns_reserve_lookup(ip):
-    try:
-        result = socket.gethostbyaddr(ip)
-        print "[+] Hostname is %s" % result[0]
-    except Exception, e:
-        print e
 
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
     print "[*] FuzSub is hot."
-    if len(sys.argv) == 1:
+    if len(sys.argv) != 1:
         print "[-] Error! You should input the domain you want to Fuzz."
         print "[-] E.g. python fuzz.py foo.com"
     else:
-        domain = sys.argv[1]
-        # domain = "qq.com"
+        # domain = sys.argv[1]
+        domain = "qq.com"
         start_fuzz(domain)
     end_time = datetime.datetime.now()
     print '[*] Total Time Consumption: ' + str((end_time - start_time).seconds) + 's'
