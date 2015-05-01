@@ -11,8 +11,6 @@
 """
 import datetime
 import sys
-import socket
-import multiprocessing
 import random
 import re
 import requests
@@ -20,7 +18,9 @@ import os
 import time
 import itertools
 from common.output import output_add, output_init, output_finished
-from multiprocessing import Pool
+from gevent.pool import Pool
+from gevent import monkey, socket;
+monkey.patch_os()
 
 TOP_LEVEL = []
 THREADS_NUM = 64
