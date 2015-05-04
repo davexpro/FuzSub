@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-# -*- utf8 -*-
+# coding=utf-8
 # author=dave
 # create=20150408
+import smtplib
+from email.mime.text import MIMEText
 
 
 def output_init(domain):
@@ -107,6 +109,39 @@ def output_finished(domain):
     file_object.write(end_content)
     file_object.close()
     print '\n[+] Results the save path: %s' % file_name
+    send_an_mail(domain)
+
+
+def send_an_mail(domain):
+    sender = 'Your Email Address[Send]'
+    receiver = 'Your Email Address[Receive]'
+    subject = '[FuzSub] Fuzz Domain: %s Finished' % domain
+    smtp_server = 'Your Email SMTP Server'
+    username = 'Your Email Address'
+    password = 'Your Email Password'
+
+    exact_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+    msg = MIMEText('''
+    <p>Hi!</p>
+
+    <p>The Mission Fuzzing qq.com Finished at %s.</p>
+
+    <p>If You Have Any Problem, You Can Send Me An E-Mail or Visit Github.</p>
+
+    <strong>GitHub:</strong>
+    <a href="https://github.com/Captain-D/FuzSub" title="GitHub">@Captain-D</a>
+
+    <p>FuzSub</p>
+
+    ''' % exact_time, "html", 'utf-8')
+    msg['Subject'] = subject
+
+    if "@" in sender and receiver:
+        smtp = smtplib.SMTP()
+        smtp.connect(smtp_server)
+        smtp.login(username, password)
+        smtp.sendmail(sender, receiver, msg.as_string())
+        smtp.quit()
 
 
 def output_add(sub_domain, ip_list, category, domain):

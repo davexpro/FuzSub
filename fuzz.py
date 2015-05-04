@@ -24,7 +24,7 @@ monkey.patch_os()
 
 TOP_LEVEL = []
 THREADS_NUM = 64
-DNS_LIST = ['223.5.5.5', '223.6.6.6', '180.76.76.76']
+DNS_LIST = ['223.5.5.5', '223.6.6.6', '180.76.76.76', '8.8.8.8']
 
 # TODO
 # 1.make this program can stop while receive sigterm.
@@ -100,7 +100,10 @@ def start_fuzz(domain):
     # file_handle = open("./dict/dns.dict")
     # DNS_LIST = file_handle.read().split('\n')
     # In Case it's Pan analytical
-    ban_ip = get_ban_ip(random.choice(DNS_LIST), domain)
+    for i in range(10):
+        ban_ip = get_ban_ip(random.choice(DNS_LIST), domain)
+        if ban_ip != "":
+            break
     print "[*] %s" % ban_ip
     '''
     while not ban_ip:
@@ -152,7 +155,7 @@ def domain_verify(doamin):
     try:
         status = requests.get(full_domain, timeout=3).status_code
         print "[+] <[%s]> %s" % (status, full_domain)
-    except Exception as  e:
+    except Exception as e:
         # Something to check whether the network problem
         print e
         pass
