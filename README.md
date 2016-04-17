@@ -1,4 +1,4 @@
-### FuzSub V1.1
+### FuzSub V1.2
 + AppName: FuzSub(Fuzz Sub-domain)
 + Create: 2015-04-08
 + Author: Dave, AAA
@@ -20,6 +20,9 @@ FuzSub可以通过用户输入的域名进行自动化Fuzz，并可根据用户�
     [*] Done!
     [*] Total Time Consumption: 0s
 
+### Update
+
++ 添加域传送漏洞检测
 
 ### Note
 
@@ -27,3 +30,6 @@ FuzSub可以通过用户输入的域名进行自动化Fuzz，并可根据用户�
 + 采用Gevent模式进行爆破提高效率
 + 建议在墙外使用本脚本，并采用8.8.8.8作为DNS。
 
+### Update
+
++ 已经将该脚本部署在 [Fuzz](http://www.fuzzall.com) 上，加入任务队列机制
