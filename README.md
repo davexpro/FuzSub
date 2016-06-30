@@ -32,7 +32,18 @@ FuzSub可以通过用户输入的域名进行自动化Fuzz，并可根据用户�
 
 ### Usage
 
+```
+pip install -r requirements.txt
+```
 
+安装完Python的相关支持库之后就可以直接食用。
+
+```
+# 一级域名枚举
+python fuzz.py qq.com
+# 无穷极域名枚举
+python fuzz.py qq.com full
+```
 
 ### Feature
 
