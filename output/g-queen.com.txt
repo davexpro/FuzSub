@@ -1,0 +1,22 @@
+@	86400 IN SOA ns1.i-netex.com. techadmin.oc11.com. 1371851839 10800 3600 604800 86400
+@	86400 IN NS ns1.i-netex.com.
+86400 IN NS ns2.i-netex.com.
+@	86400 IN A b'67.43.170.100'
+@	86400 IN MX 10 mail
+@	86400 IN TXT "v=spf1 +ip4:67.43.170.xn--0/24  all" "-j1f"
+admin	86400 IN A b'67.43.170.12'
+ml	86400 IN A b'67.43.170.25'
+ml	86400 IN MX 50 ml
+www3	86400 IN A b'67.43.170.100'
+webmail	86400 IN A b'67.43.170.2'
+ftp	86400 IN CNAME @
+munin	86400 IN A b'67.43.170.104'
+m	86400 IN A b'67.43.170.100'
+cache1	86400 IN A b'67.43.170.67'
+ana	86400 IN A b'67.43.170.52'
+ns	86400 IN A b'67.43.170.2'
+mail	86400 IN A b'67.43.170.2'
+lists	86400 IN CNAME @
+www4	86400 IN A b'67.43.170.100'
+www	86400 IN CNAME @
+www2	86400 IN A b'67.43.170.100'
